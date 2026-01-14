@@ -2,47 +2,42 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Snack Shop</title>
+<title>School Snack Shop</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body {
   font-family: Arial, sans-serif;
-  background: #f5f5f5;
+  background: #f2f2f2;
   padding: 20px;
 }
 h1, h2 {
   text-align: center;
 }
-.products, .cart {
+.box {
+  background: white;
   max-width: 700px;
   margin: auto;
-  background: white;
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
 }
-.product {
+.product, .cart-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 button {
-  padding: 5px 10px;
+  padding: 6px 10px;
 }
 .out {
   color: red;
   font-weight: bold;
 }
-.cart-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
 input, textarea {
   width: 100%;
-  margin-bottom: 8px;
   padding: 6px;
+  margin-bottom: 8px;
 }
 </style>
 </head>
@@ -51,18 +46,18 @@ input, textarea {
 
 <h1>School Snack Shop</h1>
 
-<div class="products">
+<div class="box">
 <h2>Menu</h2>
-<div id="productList">Loading...</div>
+<div id="productList">Loading stock...</div>
 </div>
 
-<div class="cart">
+<div class="box">
 <h2>Cart</h2>
 <div id="cartItems">Cart is empty</div>
 <p><strong>Total: $<span id="total">0.00</span></strong></p>
 </div>
 
-<div class="cart">
+<div class="box">
 <h2>Checkout</h2>
 <input type="email" id="email" placeholder="Your email" required>
 <input type="text" id="day" placeholder="Day you want to buy">
@@ -73,10 +68,8 @@ input, textarea {
 </div>
 
 <script>
-// 🔗 YOUR GOOGLE SHEETS CSV (ALREADY ADDED)
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPOn2u-WAaUtkVuAjh-tON8KUFpohARuKALyPpqyYezXLGJT63B6FI83DwogEK1DUrEtr3yQ5QkT89/pub?output=csv";
 
-// PRODUCT PRICES
 const prices = {
   "Takis": 1.00,
   "Gatorade Red": 1.50,
@@ -90,14 +83,26 @@ let stock = {};
 let cart = {};
 
 fetch(SHEET_URL)
-  .then(res => res.text())
-  .then(csv => {
-    const lines = csv.split("\n").slice(1);
-    lines.forEach(line => {
-      const [item, qty] = line.split(",");
-      stock[item.trim()] = parseInt(qty);
+  .then(r => r.text())
+  .then(text => {
+    const rows = text.trim().split("\n").slice(1);
+
+    rows.forEach(row => {
+      const cols = row.split(",");
+      if (cols.length >= 2) {
+        const item = cols[0].replace(/"/g, "").trim();
+        const qty = parseInt(cols[1]);
+        if (item && !isNaN(qty)) {
+          stock[item] = qty;
+        }
+      }
     });
+
     renderProducts();
+  })
+  .catch(err => {
+    document.getElementById("productList").innerText = "Error loading stock";
+    console.error(err);
   });
 
 function renderProducts() {
@@ -110,7 +115,8 @@ function renderProducts() {
     div.className = "product";
 
     if (s <= 0) {
-      div.innerHTML = `<span>${item} - $${prices[item].toFixed(2)}</span><span class="out">OUT OF STOCK</span>`;
+      div.innerHTML = `<span>${item} - $${prices[item].toFixed(2)}</span>
+                       <span class="out">OUT OF STOCK</span>`;
     } else {
       div.innerHTML = `
         <span>${item} - $${prices[item].toFixed(2)} (Stock: ${s})</span>
@@ -143,11 +149,10 @@ function renderCart() {
   let total = 0;
 
   for (let item in cart) {
-    const qty = cart[item];
-    total += qty * prices[item];
+    total += cart[item] * prices[item];
     div.innerHTML += `
       <div class="cart-item">
-        <span>${item} x${qty}</span>
+        <span>${item} x${cart[item]}</span>
         <button onclick="removeFromCart('${item}')">Remove</button>
       </div>
     `;
@@ -161,7 +166,8 @@ function renderCart() {
 }
 
 function checkout() {
-  if (!document.getElementById("email").value) {
+  const email = document.getElementById("email").value;
+  if (!email) {
     alert("Email required");
     return;
   }
@@ -172,9 +178,9 @@ function checkout() {
   }
 
   document.getElementById("status").innerText =
-    "Order placed! Screenshot this:\n" +
+    "Order placed! Screenshot this.\n" +
     summary +
-    " Total $" + document.getElementById("total").innerText;
+    "Total $" + document.getElementById("total").innerText;
 
   cart = {};
   renderCart();
@@ -183,5 +189,3 @@ function checkout() {
 
 </body>
 </html>
-
-

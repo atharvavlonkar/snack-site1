@@ -1,0 +1,92 @@
+<script>
+let stock = {};
+let cart = {};
+
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPOn2u-WAaUtkVuAjh-tON8KUFpohARuKALyPpqyYezXLGJT63B6FI83DwogEK1DUrEtr3yQ5QkT89/pub?output=csv";
+
+fetch(CSV_URL)
+  .then(res => res.text())
+  .then(text => {
+    const lines = text.split("\n").slice(1);
+    lines.forEach(line => {
+      if (!line.trim()) return;
+      const parts = line.split(",");
+      const name = parts[0].trim();
+      const qty = parseInt(parts[1]);
+      stock[name] = isNaN(qty) ? 0 : qty;
+    });
+    updateStockUI();
+  });
+
+function updateStockUI() {
+  updateOne("Takis", "stock-Takis", "btn-Takis");
+  updateOne("Gatorade Red", "stock-Gatorade");
+  updateOne("Gum Polar Ice", "stock-Gum");
+}
+
+function updateOne(key, labelId, btnId) {
+  const el = document.getElementById(labelId);
+  const amount = stock[key] ?? 0;
+
+  if (amount <= 0) {
+    el.innerHTML = `<span style="color:red;font-weight:bold">Out of stock</span>`;
+    if (btnId) document.getElementById(btnId).disabled = true;
+  } else {
+    el.innerHTML = `Stock: ${amount}`;
+    if (btnId) document.getElementById(btnId).disabled = false;
+  }
+}
+
+function addItem(name, flavor, price, stockKey) {
+  if ((stock[stockKey] ?? 0) <= 0) {
+    alert("Out of stock");
+    return;
+  }
+
+  stock[stockKey]--;
+
+  const key = `${name} (${flavor})`;
+  cart[key] = cart[key] || { qty: 0, price };
+  cart[key].qty++;
+
+  renderCart();
+  updateStockUI();
+}
+
+function removeItem(key) {
+  cart[key].qty--;
+  if (cart[key].qty <= 0) delete cart[key];
+  renderCart();
+}
+
+function renderCart() {
+  let html = "";
+  let total = 0;
+
+  for (let k in cart) {
+    total += cart[k].qty * cart[k].price;
+    html += `
+      <div class="cart-item">
+        ${k} x${cart[k].qty}
+        <button onclick="removeItem('${k}')">X</button>
+      </div>`;
+  }
+
+  document.getElementById("cartItems").innerHTML = html || "Empty";
+  document.getElementById("total").innerText = total.toFixed(2);
+}
+
+function addTakis() {
+  addItem("Takis", "Regular", 1.00, "Takis");
+}
+
+function addGatorade() {
+  const f = document.getElementById("gatoradeFlavor").value;
+  addItem("Gatorade", f, 1.50, `Gatorade ${f}`);
+}
+
+function addGum() {
+  const f = document.getElementById("gumFlavor").value;
+  addItem("Gum", f, 0.20, `Gum ${f}`);
+}
+</script>

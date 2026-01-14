@@ -1,2 +1,2 @@
-snac-site1
+snack-site1
 nfjsbujfioshfjis

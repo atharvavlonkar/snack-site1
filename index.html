@@ -8,11 +8,13 @@
 <style>
 body { font-family: Arial, sans-serif; background:#f2f2f2; padding:20px; }
 h1,h2 { text-align:center; }
-.box { background:white; max-width:700px; margin:auto; padding:15px; border-radius:8px; margin-bottom:20px; }
-.product,.cart-item { display:flex; justify-content:space-between; margin-bottom:8px; }
+.box { background:white; max-width:750px; margin:auto; padding:15px; border-radius:8px; margin-bottom:20px; }
+.product,.cart-item,.admin-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
 button { padding:6px 10px; }
 .out { color:red; font-weight:bold; }
 input,textarea { width:100%; padding:6px; margin-bottom:8px; }
+.hidden { display:none; }
+.small { font-size:12px; color:#555; }
 </style>
 </head>
 
@@ -22,7 +24,7 @@ input,textarea { width:100%; padding:6px; margin-bottom:8px; }
 
 <div class="box">
 <h2>Menu</h2>
-<div id="productList">Loading stock...</div>
+<div id="productList"></div>
 </div>
 
 <div class="box">
@@ -34,16 +36,23 @@ input,textarea { width:100%; padding:6px; margin-bottom:8px; }
 <div class="box">
 <h2>Checkout</h2>
 <input type="email" id="email" placeholder="Your email" required>
-<input type="text" id="day" placeholder="Day you want to buy">
-<input type="time" id="time">
-<textarea id="notes" placeholder="Notes (optional)"></textarea>
+<input type="text" placeholder="Day you want to buy">
+<input type="time">
+<textarea placeholder="Notes (optional)"></textarea>
 <button onclick="checkout()">Place Order</button>
 <p id="status"></p>
 </div>
 
+<div class="box">
+<h2>Admin Panel</h2>
+<input type="password" id="adminPass" placeholder="Admin password">
+<button onclick="unlockAdmin()">Unlock</button>
+<div id="adminPanel" class="hidden"></div>
+<p class="small">Admin password: <b>1234</b> (change in code)</p>
+</div>
+
 <script>
-const SHEET_URL =
-"https://docs.google.com/spreadsheets/d/e/2PACX-1vRPOn2u-WAaUtkVuAjh-tON8KUFpohARuKALyPpqyYezXLGJT63B6FI83DwogEK1DUrEtr3yQ5QkT89/pubhtml?gid=0&single=true&output=csv";
+const ADMIN_PASSWORD = "9813";
 
 const prices = {
   "Takis": 1.00,
@@ -54,36 +63,36 @@ const prices = {
   "Gum Peppermint": 0.20
 };
 
-let stock = {};
+let stock = JSON.parse(localStorage.getItem("stock")) || {
+  "Takis": 20,
+  "Gatorade Red": 15,
+  "Gatorade Orange": 15,
+  "Gatorade Green": 15,
+  "Gum Polar Ice": 30,
+  "Gum Peppermint": 30
+};
+
 let cart = {};
 
-fetch(SHEET_URL)
-  .then(res => res.text())
-  .then(text => {
-    const rows = text.split("\n").slice(1);
-    rows.forEach(row => {
-      const cols = row.split(",");
-      if (cols.length >= 2) {
-        const item = cols[0].replace(/"/g,"").trim();
-        const qty = parseInt(cols[1]);
-        if (item && !isNaN(qty)) stock[item] = qty;
-      }
-    });
-    renderProducts();
-  })
-  .catch(() => {
-    document.getElementById("productList").innerText = "Stock unavailable";
-  });
+saveStock();
+renderProducts();
+
+function saveStock() {
+  localStorage.setItem("stock", JSON.stringify(stock));
+}
 
 function renderProducts() {
   const list = document.getElementById("productList");
   list.innerHTML = "";
+
   for (let item in prices) {
-    const s = stock[item] ?? 0;
+    const s = stock[item];
     const div = document.createElement("div");
     div.className = "product";
+
     if (s <= 0) {
-      div.innerHTML = `<span>${item} - $${prices[item].toFixed(2)}</span><span class="out">OUT OF STOCK</span>`;
+      div.innerHTML = `<span>${item} - $${prices[item].toFixed(2)}</span>
+                       <span class="out">OUT OF STOCK</span>`;
     } else {
       div.innerHTML = `<span>${item} - $${prices[item].toFixed(2)} (Stock: ${s})</span>
                        <button onclick="addToCart('${item}')">Add</button>`;
@@ -96,20 +105,25 @@ function addToCart(item) {
   if (stock[item] <= 0) return;
   cart[item] = (cart[item] || 0) + 1;
   stock[item]--;
-  renderProducts(); renderCart();
+  saveStock();
+  renderProducts();
+  renderCart();
 }
 
 function removeFromCart(item) {
   cart[item]--;
   stock[item]++;
   if (cart[item] <= 0) delete cart[item];
-  renderProducts(); renderCart();
+  saveStock();
+  renderProducts();
+  renderCart();
 }
 
 function renderCart() {
   const div = document.getElementById("cartItems");
   div.innerHTML = "";
   let total = 0;
+
   for (let item in cart) {
     total += cart[item] * prices[item];
     div.innerHTML += `<div class="cart-item">
@@ -117,6 +131,7 @@ function renderCart() {
       <button onclick="removeFromCart('${item}')">Remove</button>
     </div>`;
   }
+
   if (!Object.keys(cart).length) div.innerHTML = "Cart is empty";
   document.getElementById("total").innerText = total.toFixed(2);
 }
@@ -125,9 +140,36 @@ function checkout() {
   if (!email.value) return alert("Email required");
   document.getElementById("status").innerText =
     "Order placed! Screenshot this confirmation.";
-  cart = {}; renderCart();
+  cart = {};
+  renderCart();
+}
+
+function unlockAdmin() {
+  if (document.getElementById("adminPass").value !== ADMIN_PASSWORD) {
+    alert("Wrong password");
+    return;
+  }
+
+  const panel = document.getElementById("adminPanel");
+  panel.classList.remove("hidden");
+  panel.innerHTML = "";
+
+  for (let item in stock) {
+    panel.innerHTML += `<div class="admin-row">
+      <span>${item}</span>
+      <input type="number" value="${stock[item]}" min="0"
+        onchange="updateStock('${item}', this.value)">
+    </div>`;
+  }
+}
+
+function updateStock(item, value) {
+  stock[item] = parseInt(value) || 0;
+  saveStock();
+  renderProducts();
 }
 </script>
 
 </body>
 </html>
+

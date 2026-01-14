@@ -11,22 +11,18 @@
   --box: white;
   --text: #000;
 }
-
 .dark {
   --bg: #121212;
   --box: #1e1e1e;
   --text: #fff;
 }
-
 body {
   font-family: Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
   padding: 20px;
 }
-
 h1,h2 { text-align: center; }
-
 .box {
   background: var(--box);
   max-width: 800px;
@@ -35,7 +31,6 @@ h1,h2 { text-align: center; }
   border-radius: 10px;
   margin-bottom: 20px;
 }
-
 .product {
   display: flex;
   align-items: center;
@@ -43,37 +38,30 @@ h1,h2 { text-align: center; }
   gap: 10px;
   margin-bottom: 10px;
 }
-
 .product img {
   width: 60px;
   height: 60px;
   object-fit: contain;
 }
-
 .cart-item,.admin-row {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
 }
-
 button {
   padding: 6px 10px;
   cursor: pointer;
 }
-
 .out {
   color: red;
   font-weight: bold;
 }
-
 input, textarea {
   width: 100%;
   padding: 6px;
   margin-bottom: 8px;
 }
-
 .hidden { display: none; }
-
 .toggle {
   position: fixed;
   top: 10px;
@@ -117,32 +105,32 @@ input, textarea {
 </div>
 
 <script>
-const ADMIN_PASSWORD = "1234";
+const ADMIN_PASSWORD = "9813";
 
 const products = {
   "Takis": {
     price: 1.00,
-    img: "https://upload.wikimedia.org/wikipedia/commons/5/57/Takis_Fuego.jpg"
-  },
-  "Gatorade Red": {
-    price: 1.50,
-    img: "https://i5.walmartimages.com/asr/7c1f.jpg"
+    img: "data:image/png;base64,PASTE_TAKIS_BASE64"
   },
   "Gatorade Orange": {
     price: 1.50,
-    img: "https://i5.walmartimages.com/asr/9d3c.jpg"
+    img: "data:image/png;base64,PASTE_ORANGE_BASE64"
   },
   "Gatorade Green": {
     price: 1.50,
-    img: "https://i5.walmartimages.com/asr/3a9b.jpg"
+    img: "data:image/png;base64,PASTE_GREEN_BASE64"
+  },
+  "Gatorade Red": {
+    price: 1.50,
+    img: "data:image/png;base64,PASTE_RED_BASE64"
   },
   "Gum Polar Ice": {
     price: 0.20,
-    img: "https://i5.walmartimages.com/asr/icebreakers-polar.jpg"
+    img: "data:image/png;base64,PASTE_POLAR_BASE64"
   },
   "Gum Peppermint": {
     price: 0.20,
-    img: "https://i5.walmartimages.com/asr/peppermint-gum.jpg"
+    img: "data:image/png;base64,PASTE_PEPPERMINT_BASE64"
   }
 };
 
@@ -157,7 +145,6 @@ let stock = JSON.parse(localStorage.getItem("stock")) || {
 
 let cart = {};
 let dark = localStorage.getItem("dark") === "true";
-
 if (dark) document.body.classList.add("dark");
 
 function saveStock() {
@@ -266,5 +253,7 @@ renderProducts();
 
 </body>
 </html>
+
+
 
 

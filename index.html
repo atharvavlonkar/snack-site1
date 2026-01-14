@@ -1,3 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quick Snacks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { font-family: Arial; background:#f4f4f4; margin:0 }
+header { background:#111; color:white; text-align:center; padding:15px }
+.container { max-width:900px; margin:auto; padding:20px }
+.products { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:15px }
+.card { background:white; padding:15px; border-radius:10px; text-align:center }
+button { background:#111; color:white; border:none; padding:8px 12px; cursor:pointer; border-radius:5px }
+button:disabled { background:gray }
+select, input, textarea { width:100%; padding:8px; margin:6px 0 }
+.cart { background:white; padding:15px; border-radius:10px; margin-top:20px }
+.cart-item { display:flex; justify-content:space-between; margin-bottom:6px }
+.remove { background:red; font-size:12px }
+.out { color:red; font-weight:bold }
+.total { text-align:right; font-weight:bold; margin-top:10px }
+.checkout { background:white; padding:15px; border-radius:10px; margin-top:20px }
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>Quick Snacks</h1>
+<p>Takis • Gatorade • Gum</p>
+</header>
+
+<div class="container">
+
+<h2>Products</h2>
+<div class="products">
+
+<div class="card">
+<h3>Takis</h3>
+<p>$1.00</p>
+<p id="stock-Takis">Loading...</p>
+<button onclick="addTakis()">Add to Cart</button>
+</div>
+
+<div class="card">
+<h3>Gatorade</h3>
+<p>$1.50</p>
+<select id="gatoradeFlavor">
+<option>Red</option>
+<option>Orange</option>
+<option>Green</option>
+</select>
+<p id="stock-Gatorade">Loading...</p>
+<button onclick="addGatorade()">Add to Cart</button>
+</div>
+
+<div class="card">
+<h3>Gum</h3>
+<p>$0.20</p>
+<select id="gumFlavor">
+<option>Polar Ice</option>
+<option>Peppermint</option>
+</select>
+<p id="stock-Gum">Loading...</p>
+<button onclick="addGum()">Add to Cart</button>
+</div>
+
+</div>
+
+<div class="cart">
+<h2>Cart</h2>
+<div id="cartItems">Empty</div>
+<div class="total">Total: $<span id="total">0.00</span></div>
+</div>
+
+<!-- ✅ CHECKOUT -->
+<div class="checkout">
+<h2>Checkout</h2>
+
+<label>Email</label>
+<input type="email" id="email" placeholder="your@email.com" required>
+
+<label>Day</label>
+<input type="text" id="day" placeholder="Today / Tomorrow">
+
+<label>Time</label>
+<input type="time" id="time">
+
+<label>Notes</label>
+<textarea id="notes" placeholder="Where to meet, etc"></textarea>
+
+<button onclick="placeOrder()">Place Order</button>
+
+<p id="orderStatus"></p>
+</div>
+
+</div>
+
 <script>
 let stock = {};
 let cart = {};
@@ -5,88 +103,78 @@ let cart = {};
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPOn2u-WAaUtkVuAjh-tON8KUFpohARuKALyPpqyYezXLGJT63B6FI83DwogEK1DUrEtr3yQ5QkT89/pub?output=csv";
 
 fetch(CSV_URL)
-  .then(res => res.text())
-  .then(text => {
-    const lines = text.split("\n").slice(1);
-    lines.forEach(line => {
-      if (!line.trim()) return;
-      const parts = line.split(",");
-      const name = parts[0].trim();
-      const qty = parseInt(parts[1]);
-      stock[name] = isNaN(qty) ? 0 : qty;
-    });
-    updateStockUI();
+.then(r => r.text())
+.then(text => {
+  const rows = text.trim().split("\n").slice(1);
+  rows.forEach(row => {
+    const [item, qty] = row.split(",");
+    stock[item.trim()] = parseInt(qty);
   });
+  updateStock();
+});
 
-function updateStockUI() {
-  updateOne("Takis", "stock-Takis", "btn-Takis");
-  updateOne("Gatorade Red", "stock-Gatorade");
-  updateOne("Gum Polar Ice", "stock-Gum");
+function updateStock() {
+  setStock("Takis","stock-Takis");
+  setStock("Gatorade Red","stock-Gatorade");
+  setStock("Gum Polar Ice","stock-Gum");
 }
 
-function updateOne(key, labelId, btnId) {
-  const el = document.getElementById(labelId);
-  const amount = stock[key] ?? 0;
-
-  if (amount <= 0) {
-    el.innerHTML = `<span style="color:red;font-weight:bold">Out of stock</span>`;
-    if (btnId) document.getElementById(btnId).disabled = true;
-  } else {
-    el.innerHTML = `Stock: ${amount}`;
-    if (btnId) document.getElementById(btnId).disabled = false;
-  }
+function setStock(key,id){
+  const el=document.getElementById(id);
+  const q=stock[key]||0;
+  el.innerHTML=q>0?`Stock: ${q}`:`<span class="out">Out of stock</span>`;
 }
 
-function addItem(name, flavor, price, stockKey) {
-  if ((stock[stockKey] ?? 0) <= 0) {
-    alert("Out of stock");
-    return;
-  }
-
+function addItem(name,flavor,price,stockKey){
+  if((stock[stockKey]||0)<=0){alert("Out of stock");return;}
   stock[stockKey]--;
-
-  const key = `${name} (${flavor})`;
-  cart[key] = cart[key] || { qty: 0, price };
+  const key=`${name} (${flavor})`;
+  cart[key]=cart[key]||{qty:0,price};
   cart[key].qty++;
-
-  renderCart();
-  updateStockUI();
+  renderCart();updateStock();
 }
 
-function removeItem(key) {
+function addTakis(){addItem("Takis","Regular",1,"Takis");}
+function addGatorade(){
+  const f=document.getElementById("gatoradeFlavor").value;
+  addItem("Gatorade",f,1.5,`Gatorade ${f}`);
+}
+function addGum(){
+  const f=document.getElementById("gumFlavor").value;
+  addItem("Gum",f,0.2,`Gum ${f}`);
+}
+
+function removeItem(key){
   cart[key].qty--;
-  if (cart[key].qty <= 0) delete cart[key];
+  if(cart[key].qty<=0)delete cart[key];
   renderCart();
 }
 
-function renderCart() {
-  let html = "";
-  let total = 0;
+function renderCart(){
+  let html="",total=0;
+  for(let k in cart){
+    total+=cart[k].qty*cart[k].price;
+    html+=`<div class="cart-item">${k} x${cart[k].qty}
+    <button class="remove" onclick="removeItem('${k}')">X</button></div>`;
+  }
+  document.getElementById("cartItems").innerHTML=html||"Empty";
+  document.getElementById("total").innerText=total.toFixed(2);
+}
 
-  for (let k in cart) {
-    total += cart[k].qty * cart[k].price;
-    html += `
-      <div class="cart-item">
-        ${k} x${cart[k].qty}
-        <button onclick="removeItem('${k}')">X</button>
-      </div>`;
+function placeOrder(){
+  const email=document.getElementById("email").value;
+  if(!email){alert("Email required");return;}
+
+  let summary="";
+  for(let k in cart){
+    summary+=`${k} x${cart[k].qty}\n`;
   }
 
-  document.getElementById("cartItems").innerHTML = html || "Empty";
-  document.getElementById("total").innerText = total.toFixed(2);
-}
-
-function addTakis() {
-  addItem("Takis", "Regular", 1.00, "Takis");
-}
-
-function addGatorade() {
-  const f = document.getElementById("gatoradeFlavor").value;
-  addItem("Gatorade", f, 1.50, `Gatorade ${f}`);
-}
-
-function addGum() {
-  const f = document.getElementById("gumFlavor").value;
-  addItem("Gum", f, 0.20, `Gum ${f}`);
+  document.getElementById("orderStatus").innerHTML=
+  "✅ Order placed!<br><pre>"+summary+"</pre>";
 }
 </script>
+
+</body>
+</html>
+
